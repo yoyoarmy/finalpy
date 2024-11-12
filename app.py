@@ -65,9 +65,11 @@ def count_airports(iso_regions, df):
 
 def piechart(counts, user_selection):
     plt.figure()
-    plt.pie(counts, labels=user_selection, autopct="%.2f")
-    plt.title(f"Airports in New England Area:")
+    total = sum(counts)
+    plt.pie(counts, labels=user_selection, autopct=lambda p: f"{int(p * total / 100)}")
+    plt.title("Airports in New England Area:")
     return plt
+
 
 def airport_alt(df):
     dict_alt = df.groupby("iso_region")["elevation_ft"].apply(list).to_dict()
