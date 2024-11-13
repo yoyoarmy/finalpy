@@ -10,6 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import streamlit as st
 import pydeck as pdk
+import plotly.graph_objects as go
 
 
 states = {
@@ -91,23 +92,38 @@ def airport_alt_averages(dict_alt):
     return dict_averages
 
 def bar_chart(dict_averages, dict_max):
-    plt.figure()
 
     x = list(dict_averages.keys())
     avg_y = list(dict_averages.values())
     max_y = [dict_max[state] for state in x]
 
-    plt.bar(x, avg_y, label="Average Altitude")
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        x = x,
+        y = avg_y,
+        name="Average Altitude",
+        marker_color = 'blue',
+        hovertemplate="Average Altitude: %{y} ft<extra></extra>"
+    ))
 
-    plt.bar(x, max_y, width= 0.1, color='red', label="Maximum Altitude")
+    fig.add_trace(go.Bar(
+        x = x,
+        y = max_y,
+        name = "Maximum Altitude",
+        marker_color = 'red',
+        width = 0.3,
+        hovertemplate="Maximum Altitude: %{y} ft<extra></extra>"
+    ))
 
-    plt.xticks(rotation=45)
-    plt.ylabel("Altitude")
-    plt.xlabel("State Name")
-    plt.title("Altitudes of Airports in State")
-    plt.legend()
-    return plt
+    fig.update_layout(
+        title="Average and Maximum Altitudes of Airports by State",
+        xaxis_title="State Name",
+        yaxis_title="Altitude (ft)",
+        barmode='group',
+        hovermode="x"
+    )
 
+    return fig
 
 def map(df):
     map_df = df.filter(["name", "latitude_deg", "longitude_deg","municipality", "ident"])
@@ -169,7 +185,7 @@ def main():
     averages = airport_alt_averages(altitudes)
     maximums = airport_alt_max(altitudes)
 
-    st.pyplot(bar_chart(averages, maximums))
+    st.plotly_chart(bar_chart(averages, maximums))
 
 
     map(data)
