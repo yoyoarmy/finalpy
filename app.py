@@ -101,25 +101,26 @@ def bar_chart(dict_averages, dict_max):
     fig.add_trace(go.Bar(
         x = x,
         y = avg_y,
-        name="Average Altitude",
+        name="Average Elevation",
         marker_color = 'blue',
-        hovertemplate="Average Altitude: %{y} ft<extra></extra>"
+        width = 0.8,
+        hovertemplate="Average Elevation: %{y:.1f}<extra></extra>"
     ))
 
-    fig.add_trace(go.Bar(
+    fig.add_trace(go.Scatter(
         x = x,
         y = max_y,
-        name = "Maximum Altitude",
-        marker_color = 'red',
-        width = 0.3,
-        hovertemplate="Maximum Altitude: %{y} ft<extra></extra>"
+        name = "Maximum Elevation",
+        mode = 'lines+markers',
+        line=dict(color='red', width=2),
+        hovertemplate="Maximum Elevation: %{y:.1f}<extra></extra>"
     ))
 
     fig.update_layout(
-        title="Average and Maximum Altitudes of Airports by State",
+        title="Elevations in Feet of Airports by State",
         xaxis_title="State Name",
-        yaxis_title="Altitude (ft)",
-        barmode='group',
+        yaxis_title="Elevation (ft)",
+        barmode='overlay',
         hovermode="x"
     )
 
@@ -128,9 +129,12 @@ def bar_chart(dict_averages, dict_max):
 def map(df):
     map_df = df.filter(["name", "latitude_deg", "longitude_deg","municipality", "ident"])
 
-    view_state = pdk.ViewState(latitude=map_df["latitude_deg"].mean(),
-                               longitude=map_df["longitude_deg"].mean(),
-                               zoom=5)
+    view_state = pdk.ViewState(
+        latitude=43.5,
+        longitude=-69.5,
+        zoom=5.5,
+        pitch=0
+    )
 
     layer = pdk.Layer('ScatterplotLayer',
                       data=map_df,
@@ -161,7 +165,7 @@ def counting(data):
     return airport_count, large_count, medium_count, small_count
 
 def main():
-    st.title("Data Visualization with Python")
+    st.title("Visualizing New England Airport Data using Python Charts")
     st.write("Welcome to this Airport Data in New England. Open the sidebar to begin!")
 
     st.sidebar.write("Please select your options to display data.")
@@ -195,10 +199,6 @@ def main():
     st.metric("Large Airports: ", large_count)
     st.metric("Medium Airports: ", medium_count)
     st.metric("Small Airports: ", small_count)
-
-
-
-
 
 
 if __name__ == '__main__':
