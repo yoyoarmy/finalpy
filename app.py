@@ -75,6 +75,13 @@ def airport_alt(df):
     dict_alt = df.groupby("iso_region")["elevation_ft"].apply(list).to_dict()
     return dict_alt
 
+def airport_alt_max(dict_alt):
+    dict_max = {}
+    for key in dict_alt.keys():
+        dict_max[key] = np.max(dict_alt[key])
+
+    return dict_max
+
 
 def airport_alt_averages(dict_alt):
     dict_averages = {}
@@ -83,17 +90,22 @@ def airport_alt_averages(dict_alt):
 
     return dict_averages
 
-def bar_chart(dict_averages):
+def bar_chart(dict_averages, dict_max):
     plt.figure()
 
-    x = dict_averages.keys()
-    y = dict_averages.values()
+    x = list(dict_averages.keys())
+    avg_y = list(dict_averages.values())
+    max_y = [dict_max[state] for state in x]
 
-    plt.bar(x, y)
+    plt.bar(x, avg_y, label="Average Altitude")
+
+    plt.bar(x, max_y, width= 0.1, color='red', label="Maximum Altitude")
+
     plt.xticks(rotation=45)
     plt.ylabel("Altitude")
     plt.xlabel("State Name")
-    plt.title("Average Altitudes of Airports in State")
+    plt.title("Altitudes of Airports in State")
+    plt.legend()
     return plt
 
 
@@ -155,8 +167,9 @@ def main():
 
     altitudes = airport_alt(data)
     averages = airport_alt_averages(altitudes)
+    maximums = airport_alt_max(altitudes)
 
-    st.pyplot(bar_chart(averages))
+    st.pyplot(bar_chart(averages, maximums))
 
 
     map(data)
