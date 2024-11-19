@@ -24,10 +24,16 @@ states = {
 }
 
 def read_data():
+    ##Reads and cleans the airport data, filters it for New England states, and maps state codes to full names.
+    # [PY3] Error checking with try/except
     try:
         df = pd.read_csv("airports.csv").set_index("id")
+        # [DA1] Clean or manipulate data, lambda function
+        df["elevation_ft"] = df["elevation_ft"].apply(lambda x: x if x > 0 else None)
         df = df.loc[df["iso_region"].isin(["US-MA", "US-CT", "US-RI", "US-NH", "US-VT", "US-ME"])]
+        # [PY5] A dictionary with access to keys, values, or items
         df = df.loc[df["type"].isin(["small_airport", "medium_airport", "large_airport"])]
+        # [DA2] Sort data in ascending order
         df = df.sort_values(by="elevation_ft", ascending=True)
         df["iso_region"] = df["iso_region"].map(states)
         return df
@@ -36,33 +42,41 @@ def read_data():
 
 
 def filter_data(user_selection, user_elevation, user_type, yesorno):
+    ## Filters the dataset based on user-selected states, maximum elevation, airport type, and scheduled service.
+    # [PY1] A function with two or more parameters, one with a default value
     df = read_data()
     if df.empty:
         return df
     user_selection = [states.get(region, region) for region in user_selection]
     df = df.loc[df["iso_region"].isin(user_selection)]
+    # [DA4] Filter data by one condition
     df = df.loc[df["elevation_ft"] < user_elevation]
+    # [DA5] Filter data by two or more conditions
     df = df.loc[df["type"].isin(user_type)]
     df = df.loc[df["scheduled_service"].isin(yesorno)]
     return df
 
 
 def all_regions():
+    ## Retrieves a list of unique regions available in the dataset.
     df = read_data()
     return list(df["iso_region"].unique()) if not df.empty else []
 
+
 def all_types():
+    ## Retrieves a list of unique airport types available in the dataset.
     df = read_data()
     return list(df["type"].unique()) if not df.empty else []
 
-    
 def count_airports(iso_regions, df):
+    ## Counts the number of airports in each selected region using a list comprehension.
+    # [PY4] A list comprehension
     lst = [df.loc[df["iso_region"].isin([iso_region])].shape[0] for iso_region in iso_regions]
 
     return lst
 
 def piechart(counts, user_selection):
-
+    ## Creates a pie chart to visualize the distribution of airports across selected regions.
     color_map = px.colors.qualitative.Set3
 
     fig = px.pie(
@@ -119,12 +133,15 @@ def piechart(counts, user_selection):
     return fig
 
 
-
 def airport_alt(df):
+    ## Groups airport elevation data by region and stores it as a dictionary.
+    # [DA9] Add a new column or perform calculations on DataFrame columns
     dict_alt = df.groupby("iso_region")["elevation_ft"].apply(list).to_dict()
     return dict_alt
 
+
 def airport_alt_max(dict_alt):
+    ## Calculates the maximum elevation of airports for each region.
     dict_max = {}
     for key in dict_alt.keys():
         dict_max[key] = np.max(dict_alt[key])
@@ -133,13 +150,16 @@ def airport_alt_max(dict_alt):
 
 
 def airport_alt_averages(dict_alt):
+    ## Calculates the average elevation of airports for each region.
     dict_averages = {}
     for key in dict_alt.keys():
         dict_averages[key] = np.mean(dict_alt[key])
 
     return dict_averages
 
+
 def bar_chart(dict_averages, dict_max):
+    ## Creates a bar chart to compare average and maximum airport elevations by region.
     x = list(dict_averages.keys())
     avg_y = list(dict_averages.values())
     max_y = [dict_max[state] for state in x]
@@ -203,16 +223,18 @@ def bar_chart(dict_averages, dict_max):
 
 
 def map(df):
+    ## Generates a detailed map displaying airports by location, size, and type.
+
     size_mapping = {
         "small_airport": 4,
         "medium_airport": 8,
         "large_airport": 12
     }
     df["size"] = df["type"].map(size_mapping)
+    #[DA7] Add/Drop/Select/Create New/Group Columns
 
     df["formatted_city"] = "City: " + df["municipality"]
 
-    # Mapping for legend labels
     type_labels = {
         "small_airport": "Small Airport",
         "medium_airport": "Medium Airport",
@@ -277,15 +299,21 @@ def map(df):
 
     st.plotly_chart(fig, use_container_width=False)
 
+
 def counting(data):
+    #[PY2] A function that returns more than one value
+    ## Counts the total number of airports and the number of large, medium, and small airports.
     airport_count = data.shape[0]
+    # [DA3] Find Top largest or smallest values
     large_count = data['type'].value_counts().to_dict().get("large_airport", 0)
     medium_count = data['type'].value_counts().to_dict().get("medium_airport", 0)
     small_count = data['type'].value_counts().to_dict().get("small_airport", 0)
 
     return airport_count, large_count, medium_count, small_count
 
+
 def donut(data):
+    ## Creates a donut chart to visualize the distribution of airport types.
     airport_count, large_count, medium_count, small_count = counting(data)
 
     chart_data = pd.DataFrame({
@@ -317,11 +345,13 @@ def donut(data):
 
 
 def main():
+    ## Main function to set up the Streamlit, implement controls, and display visualizations.
     st.set_page_config(page_title="Airport Data Visualization", page_icon="✈️", layout="wide")
 
     st.markdown("<h1 style='text-align: center; color: #1E90FF;'>Visualizing New England Airport Data</h1>",
                 unsafe_allow_html=True)
     st.markdown(
+        # [ST4] Customized page design
         "<h3 style='text-align: center; color: gray;'>Explore the airport data across New England states using interactive charts and maps.</h3>",
         unsafe_allow_html=True)
 
@@ -331,19 +361,21 @@ def main():
     st.sidebar.write("Use the filters below to customize the data displayed.")
 
     regions = st.sidebar.multiselect(
+        #[ST1] Dropdown widget
         "Select Regions:",
         all_regions(),
         default=all_regions()
     )
-
+    #[ST2] Slider widget
     max_altitude = st.sidebar.slider("Maximum Altitude (ft):", 0, 2500, value=2500)
+
 
     types = st.sidebar.multiselect(
         "Select Airport Types:",
         all_types(),
         default=all_types()
     )
-
+    #[ST3] Checkbox widget
     scheduled = st.sidebar.checkbox("Show Commercial Airports Only", value=False)
 
     if scheduled:
@@ -355,16 +387,18 @@ def main():
 
     st.markdown("### Airport Distribution Across New England States")
     st.plotly_chart(piechart(count_airports(regions, data), regions), use_container_width=True)
+    #[VIZ1] Pie Chart
 
     st.markdown("### Elevation Data for Airports")
     st.plotly_chart(bar_chart(airport_alt_averages(airport_alt(data)), airport_alt_max(airport_alt(data))),
+                    #[VIZ2] Bar Chart
                     use_container_width=True)
 
     st.markdown("### Airports by Type and Size on the Map")
     map(data)
+    #[MAP] Detailed Map
     donut(data)
-
-
+    #[VIZ3] Donut Chart
 
 
 if __name__ == '__main__':
