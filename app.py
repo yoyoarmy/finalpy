@@ -3,14 +3,14 @@ Joseph Arman
 CS230: Section 5
 Data: Which data set you used URL: https://ourairports.com/data/
 Link to your web application on Streamlit Cloud (if posted): https://finalpython.streamlit.app/
-Description:
+Description: This program visualizes airport data for New England states using interactive Streamlit widgets,
+charts, and maps.
 """
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 import streamlit as st
-import pydeck as pdk
 import plotly.graph_objects as go
+import plotly.express as px
 
 
 states = {
@@ -48,23 +48,11 @@ def filter_data(user_selection, user_elevation, user_type, yesorno):
 
 def all_regions():
     df = read_data()
-    lst = []
-    if df.empty:
-        return []
-    for ind, row in df.iterrows():
-        if row["iso_region"] not in lst:
-            lst.append(row["iso_region"])
-    return lst
+    return list(df["iso_region"].unique()) if not df.empty else []
 
 def all_types():
     df = read_data()
-    lst = []
-    if df.empty:
-        return []
-    for ind, row in df.iterrows():
-        if row["type"] not in lst:
-            lst.append(row["type"])
-    return lst
+    return list(df["type"].unique()) if not df.empty else []
 
     
 def count_airports(iso_regions, df):
@@ -73,12 +61,13 @@ def count_airports(iso_regions, df):
     return lst
 
 def piechart(counts, user_selection):
-    plt.figure()
-    total = sum(counts)
-    plt.pie(counts, labels=user_selection, autopct=lambda p: f"{int(p * total / 100)}")
-    plt.title("Airports in New England Area:")
-    plt.grid()
-    return plt
+    fig = px.pie(
+        values=counts,
+        names=user_selection,
+        title="Airports in New England Area",
+        hole=0.3
+    )
+    return fig
 
 
 def airport_alt(df):
@@ -135,35 +124,54 @@ def bar_chart(dict_averages, dict_max):
 
     return fig
 
-def map(df):
-    map_df = df.filter(["name", "latitude_deg", "longitude_deg","municipality", "ident"])
 
-    view_state = pdk.ViewState(
-        latitude=43.5,
-        longitude=-69.5,
-        zoom=5.5,
-        pitch=0
+
+def map(df):
+    size_mapping = {
+        "small_airport": 3,
+        "medium_airport": 7,
+        "large_airport": 11
+    }
+    df["size"] = df["type"].map(size_mapping)
+
+    df["formatted_city"] = "City: " + df["municipality"]
+
+    fig = px.scatter_mapbox(
+        df,
+        lat="latitude_deg",
+        lon="longitude_deg",
+        color="type",
+        size="size",
+        hover_name="name",
+        custom_data=["formatted_city"],
+        color_discrete_map={
+            "small_airport": "blue",
+            "medium_airport": "green",
+            "large_airport": "red"
+        },
+        size_max=11,
+        zoom=5.3,
+        title="Airports in New England by Type and Size"
     )
 
-    layer = pdk.Layer('ScatterplotLayer',
-                      data=map_df,
-                      get_position='[longitude_deg , latitude_deg]',
-                      get_radius=4000,
-                      get_color=[80, 100, 250],
-                      pickable = True)
+    fig.update_traces(
+        hovertemplate="<b>%{hovertext}</b><br>" 
+                      "%{customdata[0]}<br>" 
+                      "<extra></extra>"
+    )
 
-    tool_tip = {'html': 'Airport: '
-                        '<b>{name}</b>'
-                        '<br/>City: {municipality}'
-                        '<br/>Airport ID: {ident}',
-                'style': {'backgroundColor': 'steelblue', 'color': 'white'}}
+    fig.update_layout(
+        mapbox_style="carto-positron",
+        width=900,
+        height=650,
+        hoverlabel=dict(
+            font_size=15
+        )
+    )
 
-    map = pdk.Deck(map_style= 'mapbox://styles/mapbox/light-v9',
-                   initial_view_state=view_state,
-                   layers =[layer],
-                   tooltip=tool_tip)
+    st.plotly_chart(fig, use_container_width=True)
 
-    st.pydeck_chart(map)
+
 
 def counting(data):
     airport_count = data.shape[0]
@@ -177,14 +185,40 @@ def main():
     st.title("Visualizing New England Airport Data using Python Charts")
     st.write("Welcome to this Airport Data in New England. Open the sidebar to begin!")
 
-    st.sidebar.write("Please select your options to display data.")
+    st.sidebar.write("### Select Your Options:")
 
+    st.sidebar.write("**Choose one or more states to filter:**")
+    regions = st.sidebar.multiselect(
+        "Select a region:",
+        all_regions(),
+        default=all_regions()
+    )
+    st.sidebar.write("----------------------------------")
 
-    regions = st.sidebar.multiselect("Select a region: ", all_regions(),default=all_regions())
-    max_altitude = st.sidebar.slider("Maximum Altitude: ", 0, 2500, value=2500)
-    types = st.sidebar.multiselect("Select the type of Airport: ", all_types(), default=all_types())
+    st.sidebar.write("**Adjust the slider to filter by airport elevation:**")
+    max_altitude = st.sidebar.slider(
+        "Maximum Altitude:",
+        0,
+        2500,
+        value=2500
+    )
 
-    scheduled = st.sidebar.checkbox("Only show commercial airports", value=False)
+    st.sidebar.write("----------------------------------")
+
+    st.sidebar.write("**Choose the types of airports to display:**")
+    types = st.sidebar.multiselect(
+        "Select the type of Airport:",
+        all_types(),
+        default=all_types()
+    )
+
+    st.sidebar.write("----------------------------------")
+    st.sidebar.write("**Toggle to show only airports with scheduled services:**")
+    scheduled = st.sidebar.checkbox(
+        "Only show commercial airports",
+        value=False
+    )
+
     if scheduled:
         yesorno = ["yes"]
     else:
@@ -192,7 +226,7 @@ def main():
 
     data = filter_data(regions, max_altitude, types, yesorno)
     counts = count_airports(regions, data)
-    st.pyplot(piechart(counts, regions))
+    st.plotly_chart(piechart(counts, regions))
 
     altitudes = airport_alt(data)
     averages = airport_alt_averages(altitudes)
