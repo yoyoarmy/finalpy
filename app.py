@@ -11,6 +11,7 @@ import numpy as np
 import streamlit as st
 import plotly.graph_objects as go
 import plotly.express as px
+import altair as alt
 
 
 states = {
@@ -61,13 +62,62 @@ def count_airports(iso_regions, df):
     return lst
 
 def piechart(counts, user_selection):
+
+    color_map = px.colors.qualitative.Set3
+
     fig = px.pie(
         values=counts,
         names=user_selection,
-        title="Airports in New England Area",
-        hole=0.3
+        title="Distribution of Airports Across New England States",
+        hole=0.2,
+        color=user_selection,
+        color_discrete_sequence=color_map
     )
+
+    fig.update_traces(
+        hovertemplate="<b>%{label}</b><br>"  
+                      "Airports: %{value}<br>" 
+                      "Percentage: %{percent}<br>" 
+                      "<extra></extra>"
+    )
+
+    fig.update_layout(
+        title=dict(
+            text="Distribution of Airports Across New England States",
+            font=dict(
+                size=20,
+                color="black",
+            ),
+            x=0.4,
+            xanchor="center",
+            yanchor="top"
+        ),
+        legend=dict(
+            title="Regions",
+            orientation="v",
+            y=0.5,
+            x=-0.2,
+            xanchor="right",
+            yanchor="middle",
+            font=dict(
+                size=16,
+                color="black"
+            ),
+            title_font=dict(
+                size=18
+            )
+        ),
+        hoverlabel=dict(
+            font_size=13,
+            font_family="Arial"
+        ),
+        height=550,
+        width=800,
+
+    )
+
     return fig
+
 
 
 def airport_alt(df):
@@ -90,51 +140,84 @@ def airport_alt_averages(dict_alt):
     return dict_averages
 
 def bar_chart(dict_averages, dict_max):
-
     x = list(dict_averages.keys())
     avg_y = list(dict_averages.values())
     max_y = [dict_max[state] for state in x]
 
+    bar_colors = px.colors.qualitative.Set2
+
     fig = go.Figure()
+
     fig.add_trace(go.Bar(
-        x = x,
-        y = avg_y,
+        x=x,
+        y=avg_y,
         name="Average Elevation",
-        marker_color = 'blue',
-        width = 0.8,
-        hovertemplate="Average Elevation: %{y:.1f}<extra></extra>"
+        marker_color=bar_colors[:len(x)],
+        width=0.6,
+        hovertemplate="State: %{x}<br>Average Elevation: %{y:.1f} ft<extra></extra>"
     ))
 
     fig.add_trace(go.Scatter(
-        x = x,
-        y = max_y,
-        name = "Maximum Elevation",
-        mode = 'lines+markers',
-        line=dict(color='red', width=2),
-        hovertemplate="Maximum Elevation: %{y:.1f}<extra></extra>"
+        x=x,
+        y=max_y,
+        name="Maximum Elevation",
+        mode='lines+markers',
+        line=dict(color='darkred', width=3),
+        marker=dict(size=8, symbol='circle'),
+        hovertemplate="State: %{x}<br>Maximum Elevation: %{y:.1f} ft<extra></extra>"
     ))
 
     fig.update_layout(
-        title="Elevations in Feet of Airports by State",
-        xaxis_title="State Name",
-        yaxis_title="Elevation (ft)",
+        title=dict(
+            text="Elevations in Feet of Airports by State",
+            font=dict(size=20, color="black"),
+            x=0.5,
+            xanchor="center"
+        ),
+        xaxis=dict(
+            title="State Name",
+            tickangle=45,
+            title_font=dict(size=14),
+            tickfont=dict(size=12)
+        ),
+        yaxis=dict(
+            title="Elevation (ft)",
+            title_font=dict(size=14),
+            tickfont=dict(size=12)
+        ),
+        legend=dict(
+            title=" ",
+            font=dict(size=14),
+            orientation="h",
+            y=1.15,
+            x=0.5,
+            xanchor="center"
+        ),
+        height=600,
+        width=900,
         barmode='overlay',
-        hovermode="x"
+        hovermode="x unified"
     )
 
     return fig
 
 
-
 def map(df):
     size_mapping = {
-        "small_airport": 3,
-        "medium_airport": 7,
-        "large_airport": 11
+        "small_airport": 4,
+        "medium_airport": 8,
+        "large_airport": 12
     }
     df["size"] = df["type"].map(size_mapping)
 
     df["formatted_city"] = "City: " + df["municipality"]
+
+    # Mapping for legend labels
+    type_labels = {
+        "small_airport": "Small Airport",
+        "medium_airport": "Medium Airport",
+        "large_airport": "Large Airport"
+    }
 
     fig = px.scatter_mapbox(
         df,
@@ -149,29 +232,50 @@ def map(df):
             "medium_airport": "green",
             "large_airport": "red"
         },
-        size_max=11,
-        zoom=5.3,
+        labels={"type": "Airport Type"},
+        size_max=12,
+        zoom=6,
         title="Airports in New England by Type and Size"
     )
 
     fig.update_traces(
-        hovertemplate="<b>%{hovertext}</b><br>" 
-                      "%{customdata[0]}<br>" 
+        hovertemplate="<b>%{hovertext}</b><br>"
+                      "%{customdata[0]}<br>"
                       "<extra></extra>"
     )
 
     fig.update_layout(
-        mapbox_style="carto-positron",
-        width=900,
-        height=650,
+        title=dict(
+            text="Airports in New England by Type and Size",
+            font=dict(size=24, color="black"),
+            x=0.5,
+            xanchor="center"
+        ),
+        mapbox_style="open-street-map",
+        legend=dict(
+            title=dict(text="<b>Airport Type</b>", font=dict(size=14)),
+            font=dict(size=13),
+            orientation="v",
+            y=0.5,
+            x=1.02,
+            xanchor="left",
+            yanchor="middle",
+            bgcolor="rgba(255,255,255,0.7)",
+            bordercolor="black",
+            borderwidth=1
+        ),
+        margin=dict(l=10, r=10, t=50, b=10),
+        width=1000,
+        height=700,
         hoverlabel=dict(
-            font_size=15
+            font_size=14,
+            font_family="Arial"
         )
     )
+    for i, trace in enumerate(fig.data):
+        fig.data[i].name = type_labels[trace.name]
 
-    st.plotly_chart(fig, use_container_width=True)
-
-
+    st.plotly_chart(fig, use_container_width=False)
 
 def counting(data):
     airport_count = data.shape[0]
@@ -181,43 +285,66 @@ def counting(data):
 
     return airport_count, large_count, medium_count, small_count
 
+def donut(data):
+    airport_count, large_count, medium_count, small_count = counting(data)
+
+    chart_data = pd.DataFrame({
+        "Airport Type": ["Large Airports", "Medium Airports", "Small Airports"],
+        "Count": [large_count, medium_count, small_count],
+        "Color": ["Red", "Green", "Blue"]
+    })
+
+    donut_chart = alt.Chart(chart_data).mark_arc(innerRadius=50).encode(
+        theta=alt.Theta("Count:Q", title=""),
+        color=alt.Color("Airport Type:N", scale=alt.Scale(domain=["Large Airports", "Medium Airports", "Small Airports"],
+                                                         range=["Red", "Green", "Blue"])),
+        tooltip=["Airport Type:N", "Count:Q"]
+    ).properties(
+        title="Airport Distribution by Type",
+        width=500,
+        height=400
+    ).configure_title(
+        fontSize=18,
+        anchor="start",
+        color="black"
+    ).configure_legend(
+        titleFontSize=14,
+        labelFontSize=12
+    )
+
+    st.write(f"### Total Airports Displayed: {airport_count}")
+    st.altair_chart(donut_chart, use_container_width=True)
+
+
 def main():
-    st.title("Visualizing New England Airport Data using Python Charts")
-    st.write("Welcome to this Airport Data in New England. Open the sidebar to begin!")
+    st.set_page_config(page_title="Airport Data Visualization", page_icon="✈️", layout="wide")
 
-    st.sidebar.write("### Select Your Options:")
+    st.markdown("<h1 style='text-align: center; color: #1E90FF;'>Visualizing New England Airport Data</h1>",
+                unsafe_allow_html=True)
+    st.markdown(
+        "<h3 style='text-align: center; color: gray;'>Explore the airport data across New England states using interactive charts and maps.</h3>",
+        unsafe_allow_html=True)
 
-    st.sidebar.write("**Choose one or more states to filter:**")
+    st.markdown("---")
+
+    st.sidebar.markdown("### Filter Options")
+    st.sidebar.write("Use the filters below to customize the data displayed.")
+
     regions = st.sidebar.multiselect(
-        "Select a region:",
+        "Select Regions:",
         all_regions(),
         default=all_regions()
     )
-    st.sidebar.write("----------------------------------")
 
-    st.sidebar.write("**Adjust the slider to filter by airport elevation:**")
-    max_altitude = st.sidebar.slider(
-        "Maximum Altitude:",
-        0,
-        2500,
-        value=2500
-    )
+    max_altitude = st.sidebar.slider("Maximum Altitude (ft):", 0, 2500, value=2500)
 
-    st.sidebar.write("----------------------------------")
-
-    st.sidebar.write("**Choose the types of airports to display:**")
     types = st.sidebar.multiselect(
-        "Select the type of Airport:",
+        "Select Airport Types:",
         all_types(),
         default=all_types()
     )
 
-    st.sidebar.write("----------------------------------")
-    st.sidebar.write("**Toggle to show only airports with scheduled services:**")
-    scheduled = st.sidebar.checkbox(
-        "Only show commercial airports",
-        value=False
-    )
+    scheduled = st.sidebar.checkbox("Show Commercial Airports Only", value=False)
 
     if scheduled:
         yesorno = ["yes"]
@@ -225,23 +352,21 @@ def main():
         yesorno = ["yes", "no"]
 
     data = filter_data(regions, max_altitude, types, yesorno)
-    counts = count_airports(regions, data)
-    st.plotly_chart(piechart(counts, regions))
 
-    altitudes = airport_alt(data)
-    averages = airport_alt_averages(altitudes)
-    maximums = airport_alt_max(altitudes)
+    st.markdown("### Airport Distribution Across New England States")
+    st.plotly_chart(piechart(count_airports(regions, data), regions), use_container_width=True)
 
-    st.plotly_chart(bar_chart(averages, maximums))
+    st.markdown("### Elevation Data for Airports")
+    st.plotly_chart(bar_chart(airport_alt_averages(airport_alt(data)), airport_alt_max(airport_alt(data))),
+                    use_container_width=True)
 
-
+    st.markdown("### Airports by Type and Size on the Map")
     map(data)
-    airport_count,large_count,medium_count,small_count = counting(data)
+    donut(data)
 
-    st.metric("Total Airports being Displayed", airport_count)
-    st.metric("Large Airports: ", large_count)
-    st.metric("Medium Airports: ", medium_count)
-    st.metric("Small Airports: ", small_count)
+    st.markdown("---")
+    st.markdown("<p style='text-align: center; font-size: 14px;'>Created with by Joseph Arman | CS230 Final Project</p>",
+                unsafe_allow_html=True)
 
 
 if __name__ == '__main__':
