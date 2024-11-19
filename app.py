@@ -83,7 +83,6 @@ def piechart(counts, user_selection):
         values=counts,
         names=user_selection,
         title="Distribution of Airports Across New England States",
-        hole=0.2,
         color=user_selection,
         color_discrete_sequence=color_map
     )
