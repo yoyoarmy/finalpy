@@ -364,9 +364,7 @@ def main():
     map(data)
     donut(data)
 
-    st.markdown("---")
-    st.markdown("<p style='text-align: center; font-size: 14px;'>Created with by Joseph Arman | CS230 Final Project</p>",
-                unsafe_allow_html=True)
+
 
 
 if __name__ == '__main__':
