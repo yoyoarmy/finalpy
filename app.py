@@ -2,7 +2,7 @@
 Joseph Arman
 CS230: Section 5
 Data: Which data set you used URL: https://ourairports.com/data/
-Link to your web application on Streamlit Cloud (if posted)
+Link to your web application on Streamlit Cloud (if posted): https://finalpython.streamlit.app/
 Description:
 """
 import pandas as pd
@@ -23,28 +23,34 @@ states = {
 }
 
 def read_data():
-    df = pd.read_csv("airports.csv").set_index("id")
-    df = df.loc[df["iso_region"].isin(["US-MA", "US-CT", "US-RI", "US-NH", "US-VT", "US-ME"])]
-    df = df.loc[df["type"].isin(["small_airport", "medium_airport", "large_airport"])]
-    df = df.sort_values(by="elevation_ft", ascending=True)
-    df["iso_region"] = df["iso_region"].map(states)
-    return df
+    try:
+        df = pd.read_csv("airports.csv").set_index("id")
+        df = df.loc[df["iso_region"].isin(["US-MA", "US-CT", "US-RI", "US-NH", "US-VT", "US-ME"])]
+        df = df.loc[df["type"].isin(["small_airport", "medium_airport", "large_airport"])]
+        df = df.sort_values(by="elevation_ft", ascending=True)
+        df["iso_region"] = df["iso_region"].map(states)
+        return df
+    except FileNotFoundError:
+        st.error("Error: The data file 'airports.csv' is missing.")
 
 
 def filter_data(user_selection, user_elevation, user_type, yesorno):
     df = read_data()
+    if df.empty:
+        return df
     user_selection = [states.get(region, region) for region in user_selection]
     df = df.loc[df["iso_region"].isin(user_selection)]
     df = df.loc[df["elevation_ft"] < user_elevation]
     df = df.loc[df["type"].isin(user_type)]
     df = df.loc[df["scheduled_service"].isin(yesorno)]
-
     return df
 
 
 def all_regions():
     df = read_data()
     lst = []
+    if df.empty:
+        return []
     for ind, row in df.iterrows():
         if row["iso_region"] not in lst:
             lst.append(row["iso_region"])
@@ -53,6 +59,8 @@ def all_regions():
 def all_types():
     df = read_data()
     lst = []
+    if df.empty:
+        return []
     for ind, row in df.iterrows():
         if row["type"] not in lst:
             lst.append(row["type"])
@@ -69,6 +77,7 @@ def piechart(counts, user_selection):
     total = sum(counts)
     plt.pie(counts, labels=user_selection, autopct=lambda p: f"{int(p * total / 100)}")
     plt.title("Airports in New England Area:")
+    plt.grid()
     return plt
 
 
