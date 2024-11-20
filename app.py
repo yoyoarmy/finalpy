@@ -12,6 +12,8 @@ import streamlit as st
 import plotly.graph_objects as go
 import plotly.express as px
 import altair as alt
+import googlemaps
+from geopy.distance import geodesic
 
 
 states = {
@@ -343,6 +345,75 @@ def donut(data):
     st.altair_chart(donut_chart, use_container_width=True)
 
 
+def get_latlon(zip_code, api_key):
+    gmaps = googlemaps.Client(key=api_key)
+
+    try:
+        geocode_result = gmaps.geocode(zip_code)
+        if geocode_result:
+            location = geocode_result[0]["geometry"]["location"]
+            return location["lat"], location["lng"]
+        else:
+            return None, None
+    except Exception as e:
+        print(f"Error: {e}")
+        return None, None
+
+
+def zipmap(lat, lon, airport_data, zip_code):
+    ## Creates a map based on the closest airport to the zipcode inputted
+    airport_data['distance'] = airport_data.apply(
+        lambda row: geodesic((lat, lon), (row['latitude_deg'], row['longitude_deg'])).miles, axis=1
+    )
+    closest_airport = airport_data.loc[airport_data['distance'].idxmin()]
+    closest_airport_df = airport_data[airport_data['distance'] == closest_airport['distance']]
+    closest_airport_df["formatted_city"] = "City: " + closest_airport_df["municipality"]
+    type_labels = {
+        "small_airport": "Small Airport",
+        "medium_airport": "Medium Airport",
+        "large_airport": "Large Airport"
+    }
+    fig = px.scatter_mapbox(
+        closest_airport_df,
+        lat="latitude_deg",
+        lon="longitude_deg",
+        color="type",
+        size="size",
+        hover_name="name",
+        custom_data=["formatted_city"],
+        color_discrete_map={
+            "small_airport": "blue",
+            "medium_airport": "green",
+            "large_airport": "red"
+        },
+        labels={"type": "Airport Type"},
+        size_max=20,
+        zoom=12,
+        title=f"Closest Airport to ZipCode: {zip_code}"
+    )
+    fig.update_traces(
+        hovertemplate="<b style='font-size:17px;'>%{hovertext}</b><br>"
+                      "<span style='font-size:16px;'>%{customdata[0]}</span><br>"
+                      "<extra></extra>"
+    )
+
+    fig.update_layout(
+        title=dict(
+            text=f"Closest Airport to ZipCode: {zip_code}",
+            font=dict(size=24, color="black"),
+            x=0.3,
+            xanchor="center"
+        ),
+        mapbox_style="open-street-map",
+        margin=dict(l=10, r=10, t=50, b=10),
+        width=700,
+        height=450,
+        showlegend = False
+    )
+    st.plotly_chart(fig, use_container_width=False)
+
+
+
 def main():
     ## Main function to set up the Streamlit, implement controls, and display visualizations.
     st.set_page_config(page_title="Airport Data Visualization", page_icon="✈️", layout="wide")
@@ -399,6 +470,14 @@ def main():
     donut(data)
     #[VIZ3] Donut Chart
 
+    zip_code = st.sidebar.text_input("Enter ZIP Code:")
+    API_KEY = "AIzaSyDxCadAjCbewefdYn_seugtWCPH3pBLotg"
+    lat, lon = get_latlon(zip_code, API_KEY)
+
+    zipmap(lat, lon, data, zip_code)
+
 
 if __name__ == '__main__':
     main()
+
+    
