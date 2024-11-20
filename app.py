@@ -364,7 +364,8 @@ def zipmap(data):
     ## Creates a map based on the closest airport to the zipcode inputted
     default_zip_code = "02141"
     zip_code = st.sidebar.text_input("Enter ZIP Code:", value=default_zip_code)
-    lat, lon = get_latlon(zip_code, "AIzaSyDxCadAjCbewefdYn_seugtWCPH3pBLotg")
+    api_key = st.secrets["api_key"]
+    lat, lon = get_latlon(zip_code, api_key)
     data['distance'] = data.apply(
         lambda row: geodesic((lat, lon), (row['latitude_deg'], row['longitude_deg'])).miles, axis=1
     )
