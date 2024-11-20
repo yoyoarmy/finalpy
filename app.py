@@ -360,19 +360,17 @@ def get_latlon(zip_code, api_key):
         return None, None
 
 
-def zipmap(lat, lon, airport_data, zip_code):
+def zipmap(data):
     ## Creates a map based on the closest airport to the zipcode inputted
-    airport_data['distance'] = airport_data.apply(
+    default_zip_code = "02141"
+    zip_code = st.sidebar.text_input("Enter ZIP Code:", value=default_zip_code)
+    lat, lon = get_latlon(zip_code, "AIzaSyDxCadAjCbewefdYn_seugtWCPH3pBLotg")
+    data['distance'] = data.apply(
         lambda row: geodesic((lat, lon), (row['latitude_deg'], row['longitude_deg'])).miles, axis=1
     )
-    closest_airport = airport_data.loc[airport_data['distance'].idxmin()]
-    closest_airport_df = airport_data[airport_data['distance'] == closest_airport['distance']]
+    closest_airport = data.loc[data['distance'].idxmin()]
+    closest_airport_df = data[data['distance'] == closest_airport['distance']]
     closest_airport_df["formatted_city"] = "City: " + closest_airport_df["municipality"]
-    type_labels = {
-        "small_airport": "Small Airport",
-        "medium_airport": "Medium Airport",
-        "large_airport": "Large Airport"
-    }
     fig = px.scatter_mapbox(
         closest_airport_df,
         lat="latitude_deg",
@@ -470,11 +468,7 @@ def main():
     donut(data)
     #[VIZ3] Donut Chart
 
-    zip_code = st.sidebar.text_input("Enter ZIP Code:")
-    API_KEY = "AIzaSyDxCadAjCbewefdYn_seugtWCPH3pBLotg"
-    lat, lon = get_latlon(zip_code, API_KEY)
-
-    zipmap(lat, lon, data, zip_code)
+    zipmap(data)
 
 
 if __name__ == '__main__':
