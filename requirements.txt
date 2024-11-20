@@ -5,5 +5,3 @@ plotly
 altair
 googlemaps
 geopy
-dotenv
-os
